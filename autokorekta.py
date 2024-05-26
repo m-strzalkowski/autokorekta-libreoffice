@@ -27,7 +27,9 @@ ogonki =     {
         'ó':'o',
         'ś':'s',
         'ż':'z',
-        'ź':'z'
+        #'ź':'z'
+        'ź':'x'
+        #kwestia x ->ź
     }
 #from unidecode import unidecode
 def unidecode(s):#zamiast importu prosta funkcja - ie chcemy bawić się w instalowanie pipa we wbudwanym pythonie libreoffice'a albo niezgodność wersji, gdyby dać mu moduły systemowe
