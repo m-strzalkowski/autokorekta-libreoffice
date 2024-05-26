@@ -2,7 +2,6 @@ from unidecode import unidecode
 import pickle
 import glob
 import os
-import shutil
 #generacja_slownika.sh
 def czytaj__wszystko_w_katalogu(directory, funkcj_od_f):
     # Use glob to get a list of files in the directory
@@ -57,7 +56,7 @@ with open('słownik.pickle', 'wb') as f:
     słownik = (słowa, gołe)
     # Pickle the 'data' dictionary using the highest protocol available.
     pickle.dump(słownik, f, poz_prot_pkl())#pickle.HIGHEST_PROTOCOL)
-shutil.rmtree(os.path.join(katalog_skryptow, "__pycache__"))
+
 zapisz_pokawałkowany_słownik(słowa, os.path.join(".", "słownik_skompilowany", "słowa"), ile_części(), rób_katalog=True)
 zapisz_pokawałkowany_słownik(gołe, os.path.join(".", "słownik_skompilowany", "gołe"), ile_części(), rób_katalog=True)
 print("Wygenerowano pikla")
