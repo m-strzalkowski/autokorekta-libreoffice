@@ -1,9 +1,15 @@
-#deployment-dependent params
+#Używa funcjonalności z autokorekta.py do poprawiania na bieżąco tekstu pisanego przez użytkownika w LibreOffice
+#W tym celu podpina się do zdarzenia naciśnięca klawisza (ale załącza się tylko na spacjach)
+
+###### Ten kawałek zmieniany jest przy kopiowaniu poprzez skrypt deploy.py #######
+#Katalog roboczy makr LibreOffice jest różny od ich lokalizacji i być może róóżny
+#Wolałem też nie próbować kopiować plików ze słownikiem do katalogu z makrami (zob. deploy.py)
 KATALOG_SKRYPTOW="."
 KATALOG_ORYGINALNY="."
 PRZERZUCONE=False
+##################################################################################
 import sys
-sys.path.append(KATALOG_SKRYPTOW)
+sys.path.append(KATALOG_SKRYPTOW)#Katalog roboczy makr uruchamianych z LibreOffice może być róóżny
 
 import uno, unohelper
 from com.sun.star.awt import XKeyHandler
@@ -13,32 +19,12 @@ from com.sun.star.uno import Exception as UnoException
 from makra_wspolne import *
 from autokorekta import *
 from autokor_wspolne import log
-#XSCRIPTCONTEXT = xscriptcontext()
+
+
 # Global variable to store the key handler
 oKeyHandler = None
-def TEST():
-    desktop = XSCRIPTCONTEXT.getDesktop()
-    model = desktop.getCurrentComponent()
-    
-    if not hasattr(model, "Text"):
-        return None
 
-    # Get the text cursor
-    cursor = model.getCurrentController().getViewCursor()
-    msgbox("AA.1"+cursor.getString())
-    cursor.goLeft(1, True)
-    msgbox("AA2"+cursor.getString())
-    cursor.goLeft(1, False)
-    msgbox("B"+cursor.getString())
-    cursor.goLeft(-1, True)
-    msgbox("C"+cursor.getString())
-    cursor.goRight(1, True)
-    msgbox("D"+cursor.getString())
-    cursor.goRight(-1, True)
-    msgbox("E"+cursor.getString())
-    cursor.collapseToEnd()
-    msgbox("F"+cursor.getString())
-
+## Włącznik ##
 def AUTOKOR_USTAW_SPACJOLAPA():
     global oKeyHandler
     try:
@@ -53,7 +39,7 @@ def AUTOKOR_USTAW_SPACJOLAPA():
     except UnoException as e:
         msgbox(str(e))
         print("Error: ", e)
-
+## Wyłącznik ##
 def AUTOKOR_USUN_SPACJOLAPA():
     global oKeyHandler
     try:
@@ -67,6 +53,8 @@ def AUTOKOR_USUN_SPACJOLAPA():
     except UnoException as e:
         print("Error: ", e)
 
+#Obiekt, który słucha naciśnięć klawiszy.
+#To było odkrycie, że musi dziedziczyć po obu poniższych klasach.
 class KeyHandler(unohelper.Base, XKeyHandler):
     def __init__(self):
         pass
@@ -86,6 +74,15 @@ class KeyHandler(unohelper.Base, XKeyHandler):
 
     def disposing(self, oEvent):
         pass
+
+from autokorekta import SŁOWNIKOWY, NIEPOPRAWIALNY, POPRAWIONY, POPRAWIONY_HEURYSTYCZNIE
+kolorki = {
+    SŁOWNIKOWY : 0x000000,
+    NIEPOPRAWIALNY : 0x0000AA,
+    POPRAWIONY : 0x009900,
+    POPRAWIONY_HEURYSTYCZNIE : 0x0099AA
+}
+
 def poprawka(arg=None):
     # Get the document context
     desktop = XSCRIPTCONTEXT.getDesktop()
@@ -96,83 +93,59 @@ def poprawka(arg=None):
 
     # Get the text cursor
     cursor = model.getCurrentController().getViewCursor()
+    kolor_na_kursorze = cursor.CharColor
     if not cursor.isCollapsed():
         msgbox("Not collapsed")
         return None
-    # Move the cursor left by 32 characters and select the text
+    # Zbieramy jakiś, niewielki podgląd wstecz
     cursor.goLeft(32, True)
-    #msgbox("do lewej")
     podglądany_tekst = cursor.getString()
+
+    #Dekodowanie odpowiedzi z autokorekty
     instrukcja = korekta_ost(podglądany_tekst)
     dłtekstu = len(podglądany_tekst)
-    msgbox("Instrukcja:"+str(instrukcja))
-    if instrukcja is None:
-        cursor.collapseToEnd()
+    #msgbox("Instrukcja:"+str(instrukcja))
+    if instrukcja is None:#Nic nie znalazło do zamiany
+        cursor.collapseToEnd() # Trzeba wrócić z kursorem
         return None
-    poprawione_słowo, kolor, zasięg_org = instrukcja
-    cursor.collapseToStart()
+    poprawione_słowo, typ_akcji, zasięg_org = instrukcja
+    kolor = kolorki[typ_akcji]
+
+    # Sekwencja godna makra, która ma zamienić rozpoznane słowo.
+    cursor.collapseToStart()# Zaczynamy nie 32 litery przed kursorem zostawionym przez użytkownika, tylko len(cursor.getString wcześniej)
     #msgbox("@1.1:"+str(cursor))
     cursor.goRight(zasięg_org[0], False)
     #msgbox("@2:"+str(cursor))
-    cursor.collapseToEnd()
+    cursor.collapseToEnd()# Jesteśmy na początku słowa do skorygowania
     #msgbox("@3:"+str(cursor))
-    cursor.goRight(zasięg_org[1]-zasięg_org[0], True)
+    cursor.goRight(zasięg_org[1]-zasięg_org[0], True)# Rozszerzamy zaznaczenie do końca słowa
     #msgbox("@4:"+str(cursor))
-    cursor.setString(poprawione_słowo)
+    cursor.setString(poprawione_słowo)# Zamienia słowo na poprawione
     #msgbox("@5:"+str(cursor))
-    cursor.CharColor = kolor
+    cursor.CharColor = kolor# Ustawia kolor zaznaczenia
     #msgbox("@6:"+str(cursor))
     cursor.collapseToEnd()
     #msgbox("@7:"+str(cursor))
     #msgbox("@8:"+str(cursor))
-    cursor.goRight(dłtekstu- zasięg_org[1], False)
-    cursor.CharColor = 0x000000
+    cursor.goRight(dłtekstu- zasięg_org[1], False)# Wracamy, gdzie użytkownik miał kursor wcześniej
+    cursor.CharColor = kolor_na_kursorze#000000000# Przywracamy kolor
     #msgbox("@9:"+str(cursor))
     cursor.collapseToEnd()
     #msgbox("@10:"+str(cursor))
-    #cursor.goToRange(cursorPrevPos, false)
-    
     #msgbox("koniec")
     return None
-def poprawka2(arg=None):
-    # Get the document context
+
+#Testowe śmieci
+def TEST():
     desktop = XSCRIPTCONTEXT.getDesktop()
     model = desktop.getCurrentComponent()
     
     if not hasattr(model, "Text"):
         return None
 
-    # Get the text cursor
     cursor = model.getCurrentController().getViewCursor()
-    if not cursor.isCollapsed():
-        msgbox("Not collapsed")
-        return None
-    # Move the cursor left by 32 characters and select the text
-    cursor.goLeft(32, True)
-    #msgbox("do lewej")
-    selected_text = cursor.getString()
-    instrukcja = korekta_ost(selected_text)
-    #msgbox("Instrukcja:"+str(instrukcja))
-    if instrukcja is None:
-        return None
-    cursor.collapseToStart()
-    #msgbox("collapseToStart1")
-    cursor.goRight(instrukcja[2][1], True)
-    #msgbox("goRight(instrukcja[2][1]=", instrukcja[2][1])
-    cursor.collapseToEnd()
-    #msgbox("collapseToEnd1", instrukcja[2][1])
-    cursor.goLeft(instrukcja[2][1]-instrukcja[2][0], True)
-    #msgbox("goLeft(instrukcja[2][1]-instrukcja[2][0]")
-    cursor.setString(instrukcja[0])
-    cursor.CharColor = instrukcja[1]#0x00FF00
-    cursor.collapseToEnd()
-    cursor.CharColor = 0x000000
-    cursor.goRight(instrukcja[2][1]-instrukcja[2][0], True)
-    cursor.collapseToEnd()
-    #cursor.goToRange(cursorPrevPos, false)
-    
-    #msgbox("koniec")
-    return None
+    msgbox("AA.1"+cursor.getString())
+    cursor.goLeft(1, True)
 
 
 # Bind the functions to be called from LibreOffice UI or other events

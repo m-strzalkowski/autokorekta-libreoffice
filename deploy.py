@@ -1,5 +1,11 @@
+# Skrypt do kopiowania makr i procedur autokorekty do katalogu makr użytkownika libreoffice
+# Libreoffice widzi makra tylko w specjalnych katalogach, w tym w podanych poniżej (zależnie od systemu)
 windows_path = "%APPDATA%\\LibreOffice\\4\\user\\Scripts\\python"
 unix_path = "$HOME/.config/libreoffice/4/user/Scripts/python"
+# Ale trochę strach kopiować tam cokolwiek poza makrami, a zwłaszcza mnóstwo pliów słowników (poza tym by to trwało)
+# Dlatego kod ląduje katalogu z makrami, słowniki zostają i każdy plik dostaje wygenerowane absolutne ścieżki do obu
+# (Bo nawet jeśli makra są we wspomnianym katalogu, nie mogą importować się nawzajem, bo katalog roboczy jest jakis inny)
+
 import os
 import platform
 import shutil
@@ -21,15 +27,15 @@ if len(linia)>1:
     katalog_skryptow = linia
 katalog_oryginalny = os.path.dirname(__file__)
 print("KOPIOWANIE Z ",katalog_oryginalny,"DO ", katalog_skryptow)
+## tutaj TRZEBA dopisać pliki uzywane podczas pracy autokorekty z makra ##
 do_skopiowania = [
     'autokor.py',# główne makro
     'makra_wspolne.py', #różne przydatne funkcje
     'autokor_wspolne.py', #logi
     'autokorekta.py', #właściwa logika autokorekty
+    'pokawałkowane_słowniki.py' #
 ]
-# for nazwa in do_skopiowania:
-#     print("KOpiuję ", nazwa)
-#     shutil.copyfile(os.path.join(katalog_oryginalny, nazwa), os.path.join(katalog_skryptow, nazwa))
+
 podwoj_odwr_ukośniki = lambda s: s.replace("\\", "\\\\")
 
 def zamień(tekst, nazwa_symbolu, nowa_wartość):
@@ -52,14 +58,8 @@ def kopiuj_ustawiając_ścieżki(plik, z, do):
 for nazwa in do_skopiowania:
     kopiuj_ustawiając_ścieżki(nazwa, os.path.join(katalog_oryginalny, nazwa), os.path.join(katalog_skryptow, nazwa))
 
-# def kopiuj_i_dołóż(plik):
-#     tekst_dokładany = f"\nKATALOG_SKRYPTOW=\"{podwoj_odwr_ukośniki(katalog_skryptow)}\"\nKATALOG_ORYGINALNY=\"{podwoj_odwr_ukośniki(katalog_oryginalny)}\""
-#     z = open(os.path.join(katalog_oryginalny, plik), "r", encoding="utf-8").read()
-#     do = open(os.path.join(katalog_skryptow, plik), "w", encoding="utf-8")
-#     do.write(z)
-#     do.write(tekst_dokładany)
-#     do.close()
-#     print(f"kopiuj_i_dołóż({plik})")
-#kopiuj_i_dołóż('autokor_katalogi.py')
-shutil.rmtree(os.path.join(katalog_skryptow, "__pycache__"))
+try:
+    shutil.rmtree(os.path.join(katalog_skryptow, "__pycache__"))
+except FileNotFoundError:
+    print("__pycache__ nie znaleziono.")
 print("koniec")

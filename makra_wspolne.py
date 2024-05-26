@@ -1,10 +1,12 @@
+# Funkcje ogólnie przydatne w środowisku makr libreofffice
+#https://wiki.documentfoundation.org/Macros/Python_Guide/Useful_functions
 from com.sun.star.awt import MessageBoxButtons as MSG_BUTTONS
 import uno, unohelper
 
 CTX = uno.getComponentContext()
 SM = CTX.getServiceManager()
 
-#https://wiki.documentfoundation.org/Macros/Python_Guide/Useful_functions
+
 def create_instance(name, with_context=False):
     if with_context:
         instance = SM.createInstanceWithContext(name, CTX)
