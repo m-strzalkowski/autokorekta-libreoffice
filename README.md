@@ -1,0 +1,2 @@
+# autokorekta-libreoffice
+CHCIALBYM ZEBY MI COS CZASAMI OGONKI DOKLADALO
