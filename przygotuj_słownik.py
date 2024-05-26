@@ -1,5 +1,4 @@
 #Przetwarza słownik z tekstowej postacji do formy czytelnej dla korekty
-from unidecode import unidecode
 import pickle
 import glob
 import os

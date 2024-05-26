@@ -23,9 +23,10 @@ from autokor_wspolne import log
 
 # Global variable to store the key handler
 oKeyHandler = None
-
+def AUTOKOR_PRZY_STARCIE(*args):
+    AUTOKOR_USTAW_SPACJOLAPA(cicho=True)
 ## Włącznik ##
-def AUTOKOR_USTAW_SPACJOLAPA():
+def AUTOKOR_USTAW_SPACJOLAPA(*args, cicho=False):
     global oKeyHandler
     try:
         oController = XSCRIPTCONTEXT.getDocument().getCurrentController()
@@ -35,12 +36,13 @@ def AUTOKOR_USTAW_SPACJOLAPA():
             oKeyHandler = KeyHandler()
             oController.addKeyHandler(oKeyHandler)
             załaduj()
-            msgbox("Spacjołap wystartował!")
+            if not cicho:
+                msgbox("Spacjołap wystartował!")
     except UnoException as e:
         msgbox(str(e))
         print("Error: ", e)
 ## Wyłącznik ##
-def AUTOKOR_USUN_SPACJOLAPA():
+def AUTOKOR_USUN_SPACJOLAPA(*args):
     global oKeyHandler
     try:
         oController = XSCRIPTCONTEXT.getDocument().getCurrentController()
@@ -105,6 +107,7 @@ def poprawka(arg=None):
     instrukcja = korekta_ost(podglądany_tekst)
     dłtekstu = len(podglądany_tekst)
     #msgbox("Instrukcja:"+str(instrukcja))
+    log("Instrukcja:"+str(instrukcja))
     if instrukcja is None:#Nic nie znalazło do zamiany
         cursor.collapseToEnd() # Trzeba wrócić z kursorem
         return None
@@ -136,7 +139,7 @@ def poprawka(arg=None):
     return None
 
 #Testowe śmieci
-def TEST():
+def TEST(*args):
     desktop = XSCRIPTCONTEXT.getDesktop()
     model = desktop.getCurrentComponent()
     
@@ -149,4 +152,4 @@ def TEST():
 
 
 # Bind the functions to be called from LibreOffice UI or other events
-g_exportedScripts = TEST, AUTOKOR_USTAW_SPACJOLAPA, AUTOKOR_USUN_SPACJOLAPA
+g_exportedScripts = TEST, AUTOKOR_USTAW_SPACJOLAPA, AUTOKOR_USUN_SPACJOLAPA, AUTOKOR_PRZY_STARCIE
